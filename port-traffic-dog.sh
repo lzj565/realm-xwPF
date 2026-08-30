@@ -18,7 +18,8 @@ readonly NC='\033[0m'
 # 网络超时设置
 readonly SHORT_CONNECT_TIMEOUT=5
 readonly SHORT_MAX_TIMEOUT=7
-readonly SCRIPT_URL="https://raw.githubusercontent.com/zywe03/realm-xwPF/main/port-traffic-dog.sh"
+readonly REPO_RAW_URL="https://raw.githubusercontent.com/zywe03/realm-xwPF/main"
+readonly SCRIPT_URL="$REPO_RAW_URL/port-traffic-dog.sh"
 readonly SHORTCUT_COMMAND="dog"
 
 detect_system() {
@@ -78,7 +79,7 @@ install_missing_tools() {
 check_dependencies() {
     local silent_mode=${1:-false}
     local missing_tools=()
-    local required_tools=("nft" "tc" "ss" "jq" "awk" "bc" "unzip" "cron")
+    local required_tools=("nft" "tc" "ss" "jq" "awk" "bc" "cron")
 
     for tool in "${required_tools[@]}"; do
         if ! command -v "$tool" >/dev/null 2>&1; then
@@ -789,6 +790,11 @@ get_daily_total_traffic() {
     format_bytes $total_bytes
 }
 
+# 转义Telegram HTML动态字段，避免特殊字符破坏消息格式
+escape_telegram_html() {
+    printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'
+}
+
 format_port_list() {
     local format_type="$1"
     local active_ports=($(get_active_ports))
@@ -809,6 +815,30 @@ format_port_list() {
 
         if [ "$format_type" = "display" ]; then
             echo -e "端口:${GREEN}$port${NC} | 总流量:${GREEN}$total_formatted${NC} | 上行(入站): ${GREEN}$input_formatted${NC} | 下行(出站):${GREEN}$output_formatted${NC} | ${YELLOW}$status_label${NC}"
+        elif [ "$format_type" = "html" ]; then
+            local escaped_port=$(escape_telegram_html "$port")
+            local escaped_total=$(escape_telegram_html "$total_formatted")
+            local escaped_input=$(escape_telegram_html "$input_formatted")
+            local escaped_output=$(escape_telegram_html "$output_formatted")
+            local status_icon="🟢"
+            local status_text="正常"
+
+            if [ -n "$status_label" ]; then
+                status_text="$status_label"
+                if [[ "$status_label" == *"已超限"* ]]; then
+                    status_icon="🔴"
+                elif [[ "$status_label" == *"[限制带宽"* ]]; then
+                    status_icon="🟠"
+                fi
+            fi
+            status_text=$(escape_telegram_html "$status_text")
+
+            [ -n "$result" ] && result+=$'\n\n'
+            result+="<b>🔌 端口 <code>${escaped_port}</code></b>
+├ 📊 总流量：<b>${escaped_total}</b>
+├ ⬆️ 上传：${escaped_input}
+├ ⬇️ 下载：${escaped_output}
+└ ${status_icon} 状态：${status_text}"
         elif [ "$format_type" = "markdown" ]; then
             result+="> 端口:**${port}** | 总流量:**${total_formatted}** | 上行:**${input_formatted}** | 下行:**${output_formatted}** | ${status_label}
 "
@@ -818,7 +848,7 @@ format_port_list() {
         fi
     done
 
-    if [ "$format_type" = "message" ] || [ "$format_type" = "markdown" ]; then
+    if [ "$format_type" = "message" ] || [ "$format_type" = "markdown" ] || [ "$format_type" = "html" ]; then
         echo "$result"
     fi
 }
@@ -2361,14 +2391,12 @@ download_with_sources() {
 download_notification_modules() {
     local notifications_dir="$CONFIG_DIR/notifications"
     local temp_dir=$(mktemp -d)
-    local repo_url="https://github.com/zywe03/realm-xwPF/archive/refs/heads/main.zip"
 
-    # 下载解压复制清理：每次都覆盖更新确保版本一致
-    if download_with_sources "$repo_url" "$temp_dir/repo.zip" &&
-       (cd "$temp_dir" && unzip -q repo.zip) &&
-       rm -rf "$notifications_dir" &&
-       cp -r "$temp_dir/realm-xwPF-main/notifications" "$notifications_dir" &&
-       chmod +x "$notifications_dir"/*.sh; then
+    # 通知模块与主脚本始终从本仓库同一分支更新。
+    if download_with_sources "$REPO_RAW_URL/notifications/telegram.sh" "$temp_dir/telegram.sh" &&
+       mkdir -p "$notifications_dir" &&
+       mv "$temp_dir/telegram.sh" "$notifications_dir/telegram.sh" &&
+       chmod +x "$notifications_dir/telegram.sh"; then
         rm -rf "$temp_dir"
         return 0
     else
@@ -2398,6 +2426,8 @@ install_update_script() {
 
             echo -e "${YELLOW}正在更新通知模块...${NC}"
             download_notification_modules >/dev/null 2>&1 || true
+            # 清理旧版本遗留的企业微信定时推送，统一改用 Telegram。
+            remove_wecom_notification_cron 2>/dev/null || true
 
             echo -e "${GREEN}依赖检查完成${NC}"
             echo -e "${GREEN}脚本更新完成${NC}"
@@ -2476,20 +2506,12 @@ uninstall_script() {
 manage_notifications() {
     echo -e "${BLUE}=== 通知管理 ===${NC}"
     echo "1. Telegram机器人通知"
-    echo "2. 邮箱通知 [敬请期待]"
-    echo "3. 企业wx 机器人通知"
     echo "0. 返回主菜单"
     echo
-    read -p "请选择操作 [0-3]: " choice
+    read -p "请选择操作 [0-1]: " choice
 
     case $choice in
         1) manage_telegram_notifications ;;
-        2)
-            echo -e "${YELLOW}预留的邮箱通知功能(画饼的)${NC}"
-            sleep 2
-            manage_notifications
-            ;;
-        3) manage_wecom_notifications ;;
         0) show_main_menu ;;
         *) echo -e "${RED}无效选择${NC}"; sleep 1; manage_notifications ;;
     esac
@@ -2659,22 +2681,33 @@ remove_port_auto_reset_cron() {
 
 # 格式化状态消息（HTML格式）
 format_status_message() {
-    local server_name="${1:-$(hostname)}"  # 接受服务器名称参数
+    local server_name="${1:-$(hostname)}"
     local timestamp=$(get_beijing_time '+%Y-%m-%d %H:%M:%S')
-    local notification_icon="🔔"
     local active_ports=($(get_active_ports))
     local port_count=${#active_ports[@]}
     local daily_total=$(get_daily_total_traffic)
+    local escaped_server_name=$(escape_telegram_html "$server_name")
+    local escaped_timestamp=$(escape_telegram_html "$timestamp")
+    local escaped_daily_total=$(escape_telegram_html "$daily_total")
+    local port_details
 
-    local message="<b>${notification_icon} 端口流量狗 v${SCRIPT_VERSION}</b> | ⏰ ${timestamp}
-介绍主页:<code>https://zywe.de</code> | 项目开源:<code>https://github.com/zywe03/realm-xwPF</code>
-一只轻巧的'守护犬'，时刻守护你的端口流量 | 快捷命令: dog
----
-状态: 监控中 | 守护端口: ${port_count}个 | 端口总流量: ${daily_total}
-────────────────────────────────────────
-<pre>$(format_port_list "message")</pre>
-────────────────────────────────────────
-🔗 服务器: <i>${server_name}</i>"
+    if [ "$port_count" -gt 0 ]; then
+        port_details=$(format_port_list "html")
+    else
+        port_details="<i>暂无监控端口</i>"
+    fi
+
+    local message="<b>🐶 端口流量狗</b>
+🕐 <code>${escaped_timestamp}</code>
+
+🟢 <b>运行状态：</b>监控中
+📊 <b>总流量：</b>${escaped_daily_total}
+🔌 <b>守护端口：</b>${port_count} 个
+
+<b>📋 端口流量</b>
+${port_details}
+
+🖥 <b>服务器：</b><code>${escaped_server_name}</code>"
 
     echo "$message"
 }
@@ -2689,9 +2722,6 @@ format_text_status_message() {
     local daily_total=$(get_daily_total_traffic)
 
     local message="${notification_icon} 端口流量狗 v${SCRIPT_VERSION} | ⏰ ${timestamp}
-介绍主页: https://zywe.de | 项目开源: https://github.com/zywe03/realm-xwPF
-一只轻巧的'守护犬'，时刻守护你的端口流量 | 快捷命令: dog
----
 状态: 监控中 | 守护端口: ${port_count}个 | 端口总流量: ${daily_total}
 ────────────────────────────────────────
 $(format_port_list "message")
@@ -2711,9 +2741,6 @@ format_markdown_status_message() {
     local daily_total=$(get_daily_total_traffic)
 
     local message="**${notification_icon} 端口流量狗 v${SCRIPT_VERSION}** | ⏰ ${timestamp}
-介绍主页: \`https://zywe.de\` | 项目开源: \`https://github.com/zywe03/realm-xwPF\`
-一只轻巧的'守护犬'，时刻守护你的端口流量 | 快捷命令: dog
----
 **状态**: 监控中 | **守护端口**: ${port_count}个 | **端口总流量**: ${daily_total}
 ────────────────────────────────────────
 $(format_port_list "markdown")
@@ -2755,16 +2782,6 @@ send_status_notification() {
         fi
     fi
 
-    # 发送企业wx 通知
-    local wecom_script="$CONFIG_DIR/notifications/wecom.sh"
-    if [ -f "$wecom_script" ]; then
-        source "$wecom_script"
-        total_count=$((total_count + 1))
-        if wecom_send_status_notification; then
-            success_count=$((success_count + 1))
-        fi
-    fi
-
     if [ $total_count -eq 0 ]; then
         log_notification "通知模块不存在"
         echo -e "${RED}通知模块不存在${NC}"
@@ -2797,14 +2814,6 @@ main() {
                 if [ -f "$telegram_script" ]; then
                     source "$telegram_script"
                     telegram_send_status_notification
-                fi
-                exit 0
-                ;;
-            --send-wecom-status)
-                local wecom_script="$CONFIG_DIR/notifications/wecom.sh"
-                if [ -f "$wecom_script" ]; then
-                    source "$wecom_script"
-                    wecom_send_status_notification
                 fi
                 exit 0
                 ;;
@@ -2847,9 +2856,8 @@ main() {
                 echo "  --version                 显示版本信息"
                 echo "  --install                 安装/更新脚本"
                 echo "  --uninstall               卸载脚本"
-                echo "  --send-status             发送所有启用的状态通知"
+                echo "  --send-status             发送Telegram状态通知"
                 echo "  --send-telegram-status    发送Telegram状态通知"
-                echo "  --send-wecom-status       发送企业wx 状态通知"
                 echo "  --reset-port PORT         重置指定端口流量"
                 echo
                 echo -e "${GREEN}快捷命令: $SHORTCUT_COMMAND${NC}"
@@ -2861,4 +2869,6 @@ main() {
     show_main_menu
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi

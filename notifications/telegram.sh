@@ -25,18 +25,15 @@ send_telegram_message() {
         return 1
     fi
 
-    # URL编码：Telegram API要求空格和换行符必须编码
-    local encoded_message=$(printf '%s' "$message" | sed 's/ /%20/g; s/\n/%0A/g')
-
     local retry_count=0
 
     # 重试机制
     while [ $retry_count -le $TELEGRAM_MAX_RETRIES ]; do
         local response=$(curl -s --connect-timeout $TELEGRAM_CONNECT_TIMEOUT --max-time $TELEGRAM_MAX_TIMEOUT -X POST \
             "https://api.telegram.org/bot${bot_token}/sendMessage" \
-            -d "chat_id=${chat_id}" \
-            -d "text=${encoded_message}" \
-            -d "parse_mode=HTML" \
+            --data-urlencode "chat_id=${chat_id}" \
+            --data-urlencode "text=${message}" \
+            --data-urlencode "parse_mode=HTML" \
             2>/dev/null)
 
         # Telegram API成功响应的标准判断
