@@ -72,7 +72,7 @@ DTAG
  ⬇️ UDP Down │ 10.0 Mbps (1.2 MB/s)      │ 0/26335 (0%)              │ 0.040 ms
 
 ─────────────────────────────────────────────────────────────────
-Completed: 2025-08-28 20:12:29 | Source: https://github.com/zywe03/realm-xwPF
+Completed: 2025-08-28 20:12:29 | Source: https://github.com/lzj565/realm-xwPF
 ```
 
 </details>
@@ -82,13 +82,13 @@ Completed: 2025-08-28 20:12:29 | Source: https://github.com/zywe03/realm-xwPF
 ### One-Click Install
 
 ```bash
-wget -qO- https://raw.githubusercontent.com/zywe03/realm-xwPF/main/xwPF.sh | sudo bash -s install
+wget -qO- https://raw.githubusercontent.com/lzj565/realm-xwPF/main/xwPF.sh | sudo bash -s install
 ```
 
 ### Behind a Restricted Network? Use an Accelerated Mirror
 
 ```bash
-wget -qO- https://v6.gh-proxy.org/https://raw.githubusercontent.com/zywe03/realm-xwPF/main/xwPF.sh | sudo bash -s install
+wget -qO- https://v6.gh-proxy.org/https://raw.githubusercontent.com/lzj565/realm-xwPF/main/xwPF.sh | sudo bash -s install
 ```
 If the mirror is down, retry a few times or switch to another proxy with built-in acceleration.
 
@@ -101,8 +101,8 @@ For servers with absolutely no network connectivity.
 
 **1. Download the following files on a machine that does have internet access**
 
-- **Main script**: [xwPF.sh](https://github.com/zywe03/realm-xwPF/raw/main/xwPF.sh)
-- **Module files** (all required): https://github.com/zywe03/realm-xwPF/tree/main/lib
+- **Main script**: [xwPF.sh](https://github.com/lzj565/realm-xwPF/raw/main/xwPF.sh)
+- **Module files** (all required): https://github.com/lzj565/realm-xwPF/tree/main/lib
 
 - **Realm binary** (pick the one matching your architecture):
 
@@ -373,7 +373,7 @@ MPTCP (created when MPTCP is enabled)
 
 - **More Projects:** [https://github.com/zywe03](https://github.com/zywe03)
 - **Homepage:** [https://zywe.de](https://zywe.de)
-- **Bug Reports:** [GitHub Issues](https://github.com/zywe03/realm-xwPF/issues)
+- **Bug Reports:** [GitHub Issues](https://github.com/lzj565/realm-xwPF/issues)
 - **Chat:** [Telegram Group](https://t.me/zywe_chat)
 
 ---
