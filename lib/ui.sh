@@ -1,7 +1,7 @@
 
 # 每次更新OCR脚本
 download_realm_ocr_script() {
-    local script_url="https://raw.githubusercontent.com/zywe03/realm-xwPF/main/xw_realm_OCR.sh"
+    local script_url="https://raw.githubusercontent.com/lzj565/realm-xwPF/main/xw_realm_OCR.sh"
     local target_path="/etc/realm/xw_realm_OCR.sh"
 
     echo -e "${GREEN}正在下载最新realm配置识别脚本...${NC}"
@@ -617,7 +617,7 @@ get_gmt8_time() {
 
 # 下载故障转移管理脚本
 download_failover_script() {
-    local script_url="https://raw.githubusercontent.com/zywe03/realm-xwPF/main/xwFailover.sh"
+    local script_url="https://raw.githubusercontent.com/lzj565/realm-xwPF/main/xwFailover.sh"
     local target_path="/etc/realm/xwFailover.sh"
 
     echo -e "${GREEN}正在下载最新故障转移脚本...${NC}"
@@ -635,7 +635,7 @@ download_failover_script() {
 
 # 下载中转网络链路测试脚本
 download_speedtest_script() {
-    local script_url="https://raw.githubusercontent.com/zywe03/realm-xwPF/main/speedtest.sh"
+    local script_url="https://raw.githubusercontent.com/lzj565/realm-xwPF/main/speedtest.sh"
     local target_path="/etc/realm/speedtest.sh"
 
     echo -e "${GREEN}正在下载最新测速脚本...${NC}"
@@ -684,7 +684,7 @@ failover_management_menu() {
 
 # 端口流量狗
 port_traffic_dog_menu() {
-    local script_url="https://raw.githubusercontent.com/zywe03/realm-xwPF/main/port-traffic-dog.sh"
+    local script_url="https://raw.githubusercontent.com/lzj565/realm-xwPF/main/port-traffic-dog.sh"
     local dog_script="/usr/local/bin/port-traffic-dog.sh"
 
     # 脚本不存在或不可执行时才下载
@@ -710,7 +710,7 @@ show_menu() {
     while true; do
         clear
         echo -e "${GREEN}=== xwPF Realm全功能一键脚本 $SCRIPT_VERSION ===${NC}"
-        echo -e "${GREEN}介绍主页:${NC}https://zywe.de | ${GREEN}项目开源:${NC}https://github.com/zywe03/realm-xwPF"
+        echo -e "${GREEN}介绍主页:${NC}https://zywe.de | ${GREEN}项目开源:${NC}https://github.com/lzj565/realm-xwPF"
         echo -e "${GREEN}一个开箱即用、轻量可靠、灵活可控的 Realm 转发管理工具${NC}"
         echo -e "${GREEN}官方realm的全部功能+故障转移 | 快捷命令: pf${NC}"
 
