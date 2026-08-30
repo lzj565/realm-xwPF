@@ -85,6 +85,8 @@ DTAG
 wget -qO- https://raw.githubusercontent.com/lzj565/realm-xwPF/main/xwPF.sh | sudo bash -s install
 ```
 
+该命令会完整更新 `pf`、所有模块、端口流量狗脚本和 Telegram 通知模块，已有配置会保留。
+
 ### 网络受限使用加速源,一键安装
 
 ```bash

@@ -85,6 +85,8 @@ Completed: 2025-08-28 20:12:29 | Source: https://github.com/lzj565/realm-xwPF
 wget -qO- https://raw.githubusercontent.com/lzj565/realm-xwPF/main/xwPF.sh | sudo bash -s install
 ```
 
+This command updates `pf`, all modules, the Port Traffic Dog script, and the Telegram notification module while preserving existing configuration.
+
 ### Behind a Restricted Network? Use an Accelerated Mirror
 
 ```bash
