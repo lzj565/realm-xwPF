@@ -158,9 +158,10 @@ telegram_configure_bot() {
     echo "4. 设置服务器名称用于标识"
     echo
 
-    local current_token=$(jq -r '.notifications.telegram.bot_token' "$CONFIG_FILE")
-    local current_chat_id=$(jq -r '.notifications.telegram.chat_id' "$CONFIG_FILE")
-    local current_server_name=$(jq -r '.notifications.telegram.server_name' "$CONFIG_FILE")
+    local current_token=$(jq -r '.notifications.telegram.bot_token // ""' "$CONFIG_FILE")
+    local current_chat_id=$(jq -r '.notifications.telegram.chat_id // ""' "$CONFIG_FILE")
+    local current_server_name=$(jq -r '.notifications.telegram.server_name // ""' "$CONFIG_FILE")
+    local current_interval=$(jq -r '.notifications.telegram.status_notifications.interval // ""' "$CONFIG_FILE")
 
     if [ "$current_token" != "" ] && [ "$current_token" != "null" ]; then
         # 安全显示：隐藏Token中间部分防止泄露
@@ -175,7 +176,10 @@ telegram_configure_bot() {
     fi
     echo
 
-    read -p "请输入Bot Token: " bot_token
+    read -p "请输入Bot Token (回车保留当前值): " bot_token
+    if [ -z "$bot_token" ]; then
+        bot_token="$current_token"
+    fi
     if [ -z "$bot_token" ]; then
         echo -e "${RED}Token不能为空${NC}"
         sleep 2
@@ -190,7 +194,10 @@ telegram_configure_bot() {
         return
     fi
 
-    read -p "请输入Chat ID: " chat_id
+    read -p "请输入Chat ID (回车保留当前值): " chat_id
+    if [ -z "$chat_id" ]; then
+        chat_id="$current_chat_id"
+    fi
     if [ -z "$chat_id" ]; then
         echo -e "${RED}Chat ID不能为空${NC}"
         sleep 2
@@ -205,8 +212,8 @@ telegram_configure_bot() {
         return
     fi
 
-    local default_server_name=$(hostname)
-    read -p "请输入服务器名称 (回车默认: $default_server_name): " server_name
+    local default_server_name="${current_server_name:-$(hostname)}"
+    read -p "请输入服务器名称 (回车保留当前值: $default_server_name): " server_name
     if [ -z "$server_name" ]; then
         server_name="$default_server_name"
     fi
@@ -222,7 +229,7 @@ telegram_configure_bot() {
     echo
 
     echo -e "${BLUE}=== 状态通知间隔设置 ===${NC}"
-    local interval=$(select_notification_interval)
+    local interval=$(select_notification_interval "$current_interval")
 
     update_config ".notifications.telegram.status_notifications.interval = \"$interval\""
     echo -e "${GREEN}状态通知间隔已设置为: $interval${NC}"
@@ -262,7 +269,7 @@ telegram_manage_settings() {
 }
 
 telegram_configure_interval() {
-    local current_interval=$(jq -r '.notifications.telegram.status_notifications.interval' "$CONFIG_FILE")
+    local current_interval=$(jq -r '.notifications.telegram.status_notifications.interval // ""' "$CONFIG_FILE")
 
     echo -e "${BLUE}=== 状态通知间隔设置 ===${NC}"
     local interval_display="未设置"
@@ -271,7 +278,7 @@ telegram_configure_interval() {
     fi
     echo -e "当前间隔: $interval_display"
     echo
-    local interval=$(select_notification_interval)
+    local interval=$(select_notification_interval "$current_interval")
 
     update_config ".notifications.telegram.status_notifications.interval = \"$interval\""
     echo -e "${GREEN}状态通知间隔已设置为: $interval${NC}"

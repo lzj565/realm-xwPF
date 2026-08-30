@@ -2604,19 +2604,22 @@ setup_wecom_notification_cron() {
 
 # 通用间隔选择函数
 select_notification_interval() {
+    local current_interval="${1:-}"
+
     # 显示选择菜单到stderr，避免被变量捕获
     echo "请选择状态通知发送间隔:" >&2
     echo "1. 1分钟   2. 15分钟  3. 30分钟  4. 1小时" >&2
     echo "5. 2小时   6. 6小时   7. 12小时  8. 24小时" >&2
-    read -p "请选择(回车默认1小时) [1-8]: " interval_choice >&2
+    read -p "请选择(回车保留当前: ${current_interval:-1h}) [1-8]: " interval_choice >&2
 
-    # 默认1小时
-    local interval="1h"
+    # 有已保存值时，直接回车保留；首次配置默认1小时
+    local interval="${current_interval:-1h}"
     case $interval_choice in
         1) interval="1m" ;;
         2) interval="15m" ;;
         3) interval="30m" ;;
-        4|"") interval="1h" ;;
+        4) interval="1h" ;;
+        "") interval="${current_interval:-1h}" ;;
         5) interval="2h" ;;
         6) interval="6h" ;;
         7) interval="12h" ;;
